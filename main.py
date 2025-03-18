@@ -115,3 +115,16 @@ def update_short_url(short_code: str, url: str = Body(..., embed=True)):
         "createdAt": url_entry.createdAt,
         "updatedAt": url_entry.updatedAt,
     }
+
+@app.delete("/shorten/{short_code}")
+def delete_short_url(short_code: str):
+    db = SessionLocal()
+    url_entry = db.query(URL).filter(URL.shortCode == short_code).first()
+    
+    if not url_entry:
+        db.close()
+        raise HTTPException(status_code=404, detail="Not Found")
+    
+    db.delete(url_entry)
+    db.commit()
+    db.close()
