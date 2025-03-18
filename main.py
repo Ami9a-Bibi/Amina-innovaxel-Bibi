@@ -74,3 +74,22 @@ def get_original_url(short_code: str):
         "createdAt": url_entry.createdAt,
         "updatedAt": url_entry.updatedAt,
     }
+
+
+@app.get("/stats/{short_code}")
+def get_url_stats(short_code: str):
+    db = SessionLocal()
+    url_entry = db.query(URL).filter(URL.shortCode == short_code).first()
+    db.close()
+    
+    if not url_entry:
+        raise HTTPException(status_code=404, detail="Not Found")
+    
+    return {
+        "id": url_entry.id,
+        "url": url_entry.url,
+        "shortCode": url_entry.shortCode,
+        "createdAt": url_entry.createdAt,
+        "updatedAt": url_entry.updatedAt,
+        "accessCount": url_entry.visit_count,
+    }
