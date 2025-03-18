@@ -93,3 +93,25 @@ def get_url_stats(short_code: str):
         "updatedAt": url_entry.updatedAt,
         "accessCount": url_entry.visit_count,
     }
+
+@app.put("/shorten/{short_code}")
+def update_short_url(short_code: str, url: str = Body(..., embed=True)):
+    db = SessionLocal()
+    url_entry = db.query(URL).filter(URL.shortCode == short_code).first()
+    
+    if not url_entry:
+        db.close()
+        raise HTTPException(status_code=404, detail="Not Found")
+    
+    url_entry.url = url
+    db.commit()
+    db.refresh(url_entry)
+    db.close()
+    
+    return {
+        "id": url_entry.id,
+        "url": url_entry.url,
+        "shortCode": url_entry.shortCode,
+        "createdAt": url_entry.createdAt,
+        "updatedAt": url_entry.updatedAt,
+    }
