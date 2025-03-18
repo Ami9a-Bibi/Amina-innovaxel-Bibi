@@ -7,11 +7,13 @@ import string
 
 app = FastAPI()
 
+# Database setup
 DATABASE_URL = "sqlite:///./shortener.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+# URL Model
 class URL(Base):
     __tablename__ = "urls"
     
@@ -22,19 +24,24 @@ class URL(Base):
     updatedAt = Column(DateTime, default=func.now(), onupdate=func.now())
     visit_count = Column(Integer, default=0)
 
+# Create tables
 Base.metadata.create_all(bind=engine)
 
+# Pydantic model for URL requests
 class URLRequest(BaseModel):
     url: str
 
+# Generate a random short code
 def generate_short_code(length=6):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
+# Shorten URL
 @app.post("/shorten", status_code=status.HTTP_201_CREATED)
 def shorten_url(request: URLRequest):
     db = SessionLocal()
     short_code = generate_short_code()
     
+    # Ensure short code uniqueness
     while db.query(URL).filter(URL.shortCode == short_code).first():
         short_code = generate_short_code()
 
@@ -52,6 +59,7 @@ def shorten_url(request: URLRequest):
         "updatedAt": new_url.updatedAt,
     }
 
+# Retrieve original URL and increment visit count
 @app.get("/{short_code}")
 def get_original_url(short_code: str):
     db = SessionLocal()
@@ -72,6 +80,7 @@ def get_original_url(short_code: str):
         "createdAt": url_entry.createdAt,
         "updatedAt": url_entry.updatedAt,}
 
+# Get URL stats (visit count)
 @app.get("/stats/{short_code}")
 def get_url_stats(short_code: str):
     db = SessionLocal()
@@ -88,6 +97,7 @@ def get_url_stats(short_code: str):
         "updatedAt": url_entry.updatedAt,
         "accessCount": url_entry.visit_count}
 
+# Update an existing short URL
 @app.put("/shorten/{short_code}")
 def update_short_url(short_code: str, url: str = Body(..., embed=True)):
     db = SessionLocal()
@@ -110,6 +120,7 @@ def update_short_url(short_code: str, url: str = Body(..., embed=True)):
         "updatedAt": url_entry.updatedAt
     }
 
+# Delete a short URL
 @app.delete("/shorten/{short_code}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_short_url(short_code: str):
     db = SessionLocal()
