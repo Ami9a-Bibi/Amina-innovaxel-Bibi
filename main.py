@@ -36,7 +36,6 @@ def shorten_url(request: URLRequest):
     db = SessionLocal()
     short_code = generate_short_code()
     
-    # Commit 5: Generate unique short codes
     while db.query(URL).filter(URL.shortCode == short_code).first():
         short_code = generate_short_code()
     
@@ -52,4 +51,26 @@ def shorten_url(request: URLRequest):
         "shortCode": new_url.shortCode,
         "createdAt": new_url.createdAt,
         "updatedAt": new_url.updatedAt,
+    }
+
+@app.get("/{short_code}")
+def get_original_url(short_code: str):
+    db = SessionLocal()
+    url_entry = db.query(URL).filter(URL.shortCode == short_code).first()
+    
+    if not url_entry:
+        db.close()
+        raise HTTPException(status_code=404, detail="Not Found")
+    
+    url_entry.visit_count += 1
+    db.commit()
+    db.refresh(url_entry)
+    db.close()
+    
+    return {
+        "id": url_entry.id,
+        "url": url_entry.url,
+        "shortCode": url_entry.shortCode,
+        "createdAt": url_entry.createdAt,
+        "updatedAt": url_entry.updatedAt,
     }
